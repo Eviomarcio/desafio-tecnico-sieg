@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sieg.DocumentosFiscais.Dominio\Sieg.DocumentosFiscais.Dominio.csproj" />
+    <ProjectReference Include="..\Sieg.DocumentosFiscais.Aplicacao\Sieg.DocumentosFiscais.Aplicacao.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
