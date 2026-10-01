@@ -25,7 +25,7 @@ public sealed class DocumentosFiscaisController(IServicoDocumentosFiscais servic
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> ProcessarAsync(
-        [FromForm] IFormFile arquivo,
+        IFormFile arquivo,
         CancellationToken cancellationToken)
     {
         var conteudo = await LerArquivoAsync(arquivo, cancellationToken);
@@ -82,7 +82,7 @@ public sealed class DocumentosFiscaisController(IServicoDocumentosFiscais servic
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<DocumentoFiscalDetalhesDto>> AtualizarAsync(
         Guid id,
-        [FromForm] IFormFile arquivo,
+        IFormFile arquivo,
         CancellationToken cancellationToken)
     {
         var conteudo = await LerArquivoAsync(arquivo, cancellationToken);

@@ -5,6 +5,10 @@
     <ProjectReference Include="..\Sieg.DocumentosFiscais.Infraestrutura\Sieg.DocumentosFiscais.Infraestrutura.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>

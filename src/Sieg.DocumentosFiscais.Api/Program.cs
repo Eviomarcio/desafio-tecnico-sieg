@@ -19,6 +19,8 @@ construtor.Services
 
 construtor.Services.AddProblemDetails();
 construtor.Services.AddExceptionHandler<TratadorGlobalExcecoes>();
+construtor.Services.AddEndpointsApiExplorer();
+construtor.Services.AddSwaggerGen();
 construtor.Services.AddRateLimiter(opcoes =>
 {
     opcoes.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -38,6 +40,12 @@ construtor.Services.AddSingleton(TimeProvider.System);
 construtor.Services.AddScoped<IServicoDocumentosFiscais, ServicoDocumentosFiscais>();
 
 var aplicacao = construtor.Build();
+
+if (aplicacao.Environment.IsDevelopment())
+{
+    aplicacao.UseSwagger();
+    aplicacao.UseSwaggerUI();
+}
 
 aplicacao.UseExceptionHandler();
 aplicacao.UseStatusCodePages(async contexto =>
