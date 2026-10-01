@@ -1,3 +1,7 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Xml;
+using System.Xml.Linq;
 using Sieg.DocumentosFiscais.Aplicacao.Abstracoes;
 using Sieg.DocumentosFiscais.Aplicacao.Excecoes;
 using Sieg.DocumentosFiscais.Infraestrutura.ProcessamentoXml.Abstracoes;
