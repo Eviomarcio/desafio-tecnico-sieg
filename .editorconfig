@@ -10,3 +10,6 @@ indent_size = 4
 [*.cs]
 dotnet_sort_system_directives_first = true
 csharp_style_namespace_declarations = file_scoped:warning
+
+[**/Migracoes/*.cs]
+generated_code = true
