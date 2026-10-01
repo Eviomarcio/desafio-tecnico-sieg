@@ -12,6 +12,12 @@ public sealed class OpcoesRabbitMq
     public string NomeExchange { get; init; } = string.Empty;
     public string NomeFila { get; init; } = string.Empty;
     public string ChaveRoteamento { get; init; } = string.Empty;
+    public string NomeExchangeRetentativa { get; init; } = string.Empty;
+    public int[] IntervalosRetentativaSegundos { get; init; } = [];
+    public string NomeExchangeFalhas { get; init; } = string.Empty;
+    public string NomeFilaFalhas { get; init; } = string.Empty;
+    public string ChaveRoteamentoFalhas { get; init; } = string.Empty;
+    public int LimiteMensagensNaoConfirmadas { get; init; }
     public int QuantidadeLoteOutbox { get; init; }
     public int IntervaloPublicacaoSegundos { get; init; }
 

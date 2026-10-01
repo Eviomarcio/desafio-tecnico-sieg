@@ -21,6 +21,8 @@ public static class InjecaoDependenciaPersistencia
             opcoes.UseNpgsql(conexao));
         servicos.AddScoped<IDocumentoFiscalRepositorio, DocumentoFiscalRepositorio>();
         servicos.AddScoped<IEventoPendenteRepositorio, EventoPendenteRepositorio>();
+        servicos.AddScoped<IEventoConsumidoRepositorio, EventoConsumidoRepositorio>();
+        servicos.AddScoped<IResumoDocumentoFiscalRepositorio, ResumoDocumentoFiscalRepositorio>();
         servicos.AddScoped<IUnidadeTrabalho>(provedor =>
             provedor.GetRequiredService<DocumentosFiscaisDbContext>());
 

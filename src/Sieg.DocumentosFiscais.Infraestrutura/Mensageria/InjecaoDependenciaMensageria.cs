@@ -11,6 +11,27 @@ public static class InjecaoDependenciaMensageria
         this IServiceCollection servicos,
         IConfiguration configuracao)
     {
+        servicos.AdicionarConfiguracaoRabbitMq(configuracao);
+        servicos.AddSingleton<IPublicadorEventos, PublicadorEventosRabbitMq>();
+        servicos.AddHostedService<ServicoPublicacaoOutbox>();
+
+        return servicos;
+    }
+
+    public static IServiceCollection AdicionarConsumidorMensageria(
+        this IServiceCollection servicos,
+        IConfiguration configuracao)
+    {
+        servicos.AdicionarConfiguracaoRabbitMq(configuracao);
+        servicos.AddHostedService<ConsumidorDocumentosFiscais>();
+
+        return servicos;
+    }
+
+    private static void AdicionarConfiguracaoRabbitMq(
+        this IServiceCollection servicos,
+        IConfiguration configuracao)
+    {
         servicos
             .AddOptions<OpcoesRabbitMq>()
             .Bind(configuracao.GetSection(OpcoesRabbitMq.NomeSecao))
@@ -39,6 +60,25 @@ public static class InjecaoDependenciaMensageria
                 opcoes => !string.IsNullOrWhiteSpace(opcoes.ChaveRoteamento),
                 "Configure a chave de roteamento do RabbitMQ.")
             .Validate(
+                opcoes => !string.IsNullOrWhiteSpace(opcoes.NomeExchangeRetentativa),
+                "Configure o exchange de retentativas do RabbitMQ.")
+            .Validate(
+                opcoes => opcoes.IntervalosRetentativaSegundos.Length > 0 &&
+                          opcoes.IntervalosRetentativaSegundos.All(intervalo => intervalo >= 1),
+                "Configure ao menos um intervalo de retentativa maior que zero.")
+            .Validate(
+                opcoes => !string.IsNullOrWhiteSpace(opcoes.NomeExchangeFalhas),
+                "Configure o exchange de falhas do RabbitMQ.")
+            .Validate(
+                opcoes => !string.IsNullOrWhiteSpace(opcoes.NomeFilaFalhas),
+                "Configure a fila de falhas do RabbitMQ.")
+            .Validate(
+                opcoes => !string.IsNullOrWhiteSpace(opcoes.ChaveRoteamentoFalhas),
+                "Configure a chave de roteamento da fila de falhas do RabbitMQ.")
+            .Validate(
+                opcoes => opcoes.LimiteMensagensNaoConfirmadas is >= 1 and <= 100,
+                "Configure o limite de mensagens não confirmadas entre 1 e 100.")
+            .Validate(
                 opcoes => opcoes.QuantidadeLoteOutbox is >= 1 and <= 100,
                 "Configure a quantidade do lote Outbox entre 1 e 100.")
             .Validate(
@@ -48,9 +88,5 @@ public static class InjecaoDependenciaMensageria
 
         servicos.AddSingleton(provedor =>
             provedor.GetRequiredService<IOptions<OpcoesRabbitMq>>().Value);
-        servicos.AddSingleton<IPublicadorEventos, PublicadorEventosRabbitMq>();
-        servicos.AddHostedService<ServicoPublicacaoOutbox>();
-
-        return servicos;
     }
 }
