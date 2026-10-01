@@ -5,6 +5,7 @@ using Sieg.DocumentosFiscais.Api.TratamentoErros;
 using Sieg.DocumentosFiscais.Aplicacao.DocumentosFiscais;
 using Sieg.DocumentosFiscais.Infraestrutura.Persistencia;
 using Sieg.DocumentosFiscais.Infraestrutura.ProcessamentoXml;
+using Sieg.DocumentosFiscais.Infraestrutura.Mensageria;
 
 var construtor = WebApplication.CreateBuilder(args);
 
@@ -32,6 +33,7 @@ construtor.Services.AddRateLimiter(opcoes =>
 
 construtor.Services.AdicionarPersistencia(construtor.Configuration);
 construtor.Services.AdicionarProcessamentoXml();
+construtor.Services.AdicionarMensageria(construtor.Configuration);
 construtor.Services.AddSingleton(TimeProvider.System);
 construtor.Services.AddScoped<IServicoDocumentosFiscais, ServicoDocumentosFiscais>();
 

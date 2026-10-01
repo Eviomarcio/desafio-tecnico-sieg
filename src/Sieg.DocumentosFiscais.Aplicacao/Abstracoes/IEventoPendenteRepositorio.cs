@@ -7,4 +7,9 @@ public interface IEventoPendenteRepositorio
     Task AdicionarAsync(
         EventoPendente evento,
         CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<EventoPendente>> ListarProntosParaPublicacaoAsync(
+        DateTimeOffset instante,
+        int quantidade,
+        CancellationToken cancellationToken);
 }
