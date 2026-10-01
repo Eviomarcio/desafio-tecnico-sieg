@@ -118,13 +118,24 @@ public sealed class DocumentoFiscal
             return null;
         }
 
-        var somenteDigitos = new string(cnpj.Where(char.IsDigit).ToArray());
-        if (somenteDigitos.Length != 14)
+        var valorNormalizado = new string(cnpj
+            .Where(caractere =>
+                !char.IsWhiteSpace(caractere)
+                && caractere is not '.' and not '/' and not '-')
+            .Select(char.ToUpperInvariant)
+            .ToArray());
+        var formatoValido = valorNormalizado.Length == 14
+            && valorNormalizado[..12].All(EhLetraMaiusculaOuDigito)
+            && valorNormalizado[12..].All(EhDigito);
+
+        if (!formatoValido)
         {
-            throw new ArgumentException("O CNPJ deve possuir 14 dígitos.", nomeParametro);
+            throw new ArgumentException(
+                "O CNPJ deve possuir 12 caracteres alfanuméricos e 2 dígitos verificadores.",
+                nomeParametro);
         }
 
-        return somenteDigitos;
+        return valorNormalizado;
     }
 
     private static string? NormalizarUnidadeFederativa(string? unidadeFederativa)
@@ -147,4 +158,9 @@ public sealed class DocumentoFiscal
 
     private static string? NormalizarTexto(string? valor) =>
         string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();
+
+    private static bool EhLetraMaiusculaOuDigito(char caractere) =>
+        caractere is >= 'A' and <= 'Z' || EhDigito(caractere);
+
+    private static bool EhDigito(char caractere) => caractere is >= '0' and <= '9';
 }
