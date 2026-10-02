@@ -1,0 +1,16 @@
+<cteProc xmlns="http://www.portalfiscal.inf.br/cte">
+  <CTe>
+    <infCte Id="CTe41261022345678000195570010000000011000000010">
+      <ide>
+        <dhEmi>2026-10-02T10:00:00-03:00</dhEmi>
+      </ide>
+      <emit>
+        <CNPJ>22.345.678/0001-95</CNPJ>
+        <UF>PR</UF>
+      </emit>
+      <dest>
+        <CNPJ>88.765.432/0001-10</CNPJ>
+      </dest>
+    </infCte>
+  </CTe>
+</cteProc>

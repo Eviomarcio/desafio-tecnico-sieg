@@ -9,8 +9,10 @@ public sealed class FabricaDocumentosFiscaisDbContext
     public DocumentosFiscaisDbContext CreateDbContext(string[] args)
     {
         var construtor = new DbContextOptionsBuilder<DocumentosFiscaisDbContext>();
-        construtor.UseNpgsql(
-            "Host=localhost;Port=5432;Database=documentos_fiscais;Username=postgres;Password=postgres");
+        var conexao = Environment.GetEnvironmentVariable("ConnectionStrings__PostgreSql")
+            ?? "Host=localhost;Port=5432;Database=documentos_fiscais;" +
+               "Username=postgres;Password=postgres";
+        construtor.UseNpgsql(conexao);
 
         return new DocumentosFiscaisDbContext(construtor.Options);
     }

@@ -1,0 +1,14 @@
+<CompNfse>
+  <Nfse>
+    <InfNfse Id="NFSE-0001">
+      <DataEmissao>2026-10-03T11:00:00-03:00</DataEmissao>
+      <PrestadorServico>
+        <Cnpj>AB.CDE.FGH/IJKL-01</Cnpj>
+        <Uf>SC</Uf>
+      </PrestadorServico>
+      <TomadorServico>
+        <Cnpj>78.765.432/0001-10</Cnpj>
+      </TomadorServico>
+    </InfNfse>
+  </Nfse>
+</CompNfse>
