@@ -11,6 +11,7 @@ namespace Sieg.DocumentosFiscais.Api.Controllers;
 [Route("api/v1/documentos-fiscais")]
 public sealed class DocumentosFiscaisController(IServicoDocumentosFiscais servico) : ControllerBase
 {
+    private const string NomeRotaObterPorId = "ObterDocumentoFiscalPorId";
     private const long TamanhoMaximoRequisicao =
         ProcessadorXmlFiscal.TamanhoMaximoEmBytes + (64 * 1024);
 
@@ -37,8 +38,8 @@ public sealed class DocumentosFiscaisController(IServicoDocumentosFiscais servic
             return Ok(resultado.Documento);
         }
 
-        return CreatedAtAction(
-            nameof(ObterPorIdAsync),
+        return CreatedAtRoute(
+            NomeRotaObterPorId,
             new { id = resultado.Documento.Id },
             resultado.Documento);
     }
@@ -62,7 +63,7 @@ public sealed class DocumentosFiscaisController(IServicoDocumentosFiscais servic
         return Ok(await servico.ListarAsync(filtro, cancellationToken));
     }
 
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id:guid}", Name = NomeRotaObterPorId)]
     [ProducesResponseType<DocumentoFiscalDetalhesDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DocumentoFiscalDetalhesDto>> ObterPorIdAsync(
