@@ -49,6 +49,49 @@ O domínio não depende de infraestrutura. A aplicação coordena os casos de us
 e a infraestrutura implementa persistência, análise dos XMLs e mensageria. A API publica o
 Outbox, enquanto o processador é responsável pelo consumo e pela geração dos resumos.
 
+### Por que utilizar Clean Architecture
+
+A Clean Architecture foi adotada para manter as regras de documentos fiscais independentes dos
+detalhes técnicos usados para executá-las. Entidades, enumerações e eventos do domínio não
+conhecem ASP.NET Core, Entity Framework Core, PostgreSQL ou RabbitMQ. A camada de aplicação
+define os casos de uso e os contratos necessários, enquanto a infraestrutura fornece suas
+implementações. Dessa forma, as dependências apontam para as regras centrais da solução, e não
+para ferramentas externas.
+
+Essa separação traz benefícios importantes para este projeto:
+
+- permite testar regras e casos de uso sem iniciar banco de dados, servidor HTTP ou mensageria;
+- impede que controllers concentrem regras de negócio ou acessem diretamente o contexto do EF
+  Core;
+- permite substituir PostgreSQL, RabbitMQ ou o processador de XML com menor impacto nas regras
+  da aplicação;
+- possibilita que a API e o processador em segundo plano reutilizem os mesmos contratos e casos
+  de uso;
+- torna explícitos os limites entre domínio, aplicação, infraestrutura e mecanismos de entrada;
+- reduz o acoplamento e facilita a evolução independente de persistência, XML e mensageria.
+
+O custo dessa abordagem é a existência de mais projetos, interfaces e configurações de injeção
+de dependência. Neste desafio, esse custo é compensado pela presença de persistência
+transacional, processamento de diferentes XMLs, publicação Outbox, consumo assíncrono e testes
+em vários níveis. Os testes de arquitetura garantem automaticamente que esses limites não sejam
+violados durante a evolução da solução.
+
+#### Trade-offs da escolha
+
+| Decisão | Ganho | Custo ou limitação |
+|---|---|---|
+| Separar a solução em camadas | Responsabilidades e dependências ficam explícitas | Mais projetos, pastas e arquivos para manter |
+| Definir contratos na aplicação | Casos de uso podem ser testados e a infraestrutura pode ser substituída | Exige interfaces, implementações e registros na injeção de dependência |
+| Manter o domínio independente | Regras de negócio não ficam acopladas a frameworks | Requer mapeamentos entre entidades, DTOs, eventos e modelos de persistência |
+| Isolar EF Core e RabbitMQ na infraestrutura | API e aplicação não conhecem detalhes externos | A navegação pelo código envolve atravessar mais camadas |
+| Aplicar regras arquiteturais automaticamente | Regressões de dependência são detectadas no build | A suíte de arquitetura também precisa evoluir quando surgem novas convenções |
+
+Em uma API CRUD pequena e sem perspectiva de evolução, essa estrutura poderia representar
+complexidade desnecessária. Neste caso, porém, a combinação de persistência transacional,
+idempotência, Outbox, processamento assíncrono, retentativas e múltiplos formatos fiscais torna
+vantajosa a separação. O trade-off assumido é aceitar mais estrutura e código de integração em
+troca de testabilidade, menor acoplamento e maior segurança para evoluir a solução.
+
 ## Tecnologias utilizadas
 
 - .NET 8 e C#;
