@@ -391,6 +391,38 @@ Os testes de integração utilizam Testcontainers e precisam do Docker em execu�
 PostgreSQL e RabbitMQ descartáveis, validando a API, persistência, migrations, Outbox,
 idempotência, retentativas e fila de falhas.
 
+## Testes de carga com k6
+
+A suíte em [`tests/carga`](tests/carga) executa simultaneamente quatro cenários:
+
+- upload concorrente, criando uma chave fiscal exclusiva por iteração;
+- reenvio concorrente do mesmo XML, validando a idempotência;
+- listagem paginada, alternando entre as cinco primeiras páginas;
+- consulta repetida de um documento pelo identificador.
+
+Antes do teste, ele cria automaticamente o documento usado nos cenários de reenvio e consulta.
+Para que a medição não seja limitada intencionalmente pelas 30 ingestões por minuto da
+configuração normal, inicie a API com um limite específico para carga:
+
+```powershell
+$env:LIMITE_INGESTAO_POR_MINUTO = "10000"
+docker compose up --build -d postgres rabbitmq api processador
+docker compose --profile carga run --rm k6
+Remove-Item Env:LIMITE_INGESTAO_POR_MINUTO
+```
+
+O teste falha quando a taxa de erros de qualquer cenário chega a 1%. Os limites padrão de
+latência no percentil 95 são 2 segundos para upload, 1 segundo para reenvio e 500 milissegundos
+para as duas consultas. Ao final são gerados `tests/carga/resultados/resumo.json` e
+`tests/carga/resultados/relatorio.html`; ambos ficam ignorados pelo Git.
+
+Cada usuário virtual de escrita aguarda 200 milissegundos entre iterações. Isso mantém a carga
+controlada e evita que um teste local curto produza tráfego acidentalmente ilimitado.
+
+Volume, duração, taxas e limites de latência podem ser alterados pelas variáveis documentadas
+em [`.env.example`](.env.example). Execute cargas apenas em um ambiente controlado, nunca
+diretamente em produção.
+
 ## Limitações e possíveis melhorias
 
 - adicionar autenticação e autorização por escopos ou perfis;
@@ -401,6 +433,6 @@ idempotência, retentativas e fila de falhas.
 - usar um rate limiter distribuído quando houver várias instâncias da API;
 - executar migrations por um job exclusivo no processo de implantação;
 - criar endpoint ou ferramenta administrativa para inspeção e reprocessamento da fila de falhas;
-- adicionar testes de carga e testes de desempenho para ingestão e consultas;
+- estabelecer uma linha de base de desempenho em ambiente equivalente ao de produção;
 - ampliar o consumidor com novos handlers e versionamento explícito dos contratos de eventos;
 - definir políticas de backup, recuperação e alta disponibilidade para PostgreSQL e RabbitMQ.

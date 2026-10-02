@@ -5,6 +5,8 @@
 .vscode/
 TestResults/
 coverage/
+tests/carga/resultados/*
+!tests/carga/resultados/.gitkeep
 *.user
 *.suo
 .env

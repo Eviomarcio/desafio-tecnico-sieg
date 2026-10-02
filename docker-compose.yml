@@ -59,6 +59,7 @@ services:
       ASPNETCORE_HTTP_PORTS: 8080
       BancoDados__AplicarMigracoesAoIniciar: true
       Seguranca__UsarRedirecionamentoHttps: false
+      LimitesRequisicoes__IngestaoPorMinuto: ${LIMITE_INGESTAO_POR_MINUTO:-30}
     ports:
       - "${API_PORT:-5119}:8080"
     depends_on:
@@ -87,6 +88,32 @@ services:
       api:
         condition: service_healthy
     restart: unless-stopped
+
+  k6:
+    image: grafana/k6:2.3.0
+    profiles: ["carga"]
+    environment:
+      BASE_URL: http://api:8080
+      VUS_UPLOAD: ${K6_VUS_UPLOAD:-5}
+      DURACAO_UPLOAD: ${K6_DURACAO_UPLOAD:-40s}
+      VUS_REENVIO: ${K6_VUS_REENVIO:-2}
+      DURACAO_REENVIO: ${K6_DURACAO_REENVIO:-30s}
+      TAXA_LISTAGEM: ${K6_TAXA_LISTAGEM:-5}
+      TAXA_CONSULTA: ${K6_TAXA_CONSULTA:-5}
+      DURACAO_LEITURAS: ${K6_DURACAO_LEITURAS:-30s}
+      K6_WEB_DASHBOARD: true
+      K6_WEB_DASHBOARD_PERIOD: 1s
+      K6_WEB_DASHBOARD_EXPORT: /resultados/relatorio.html
+    volumes:
+      - ./tests/carga:/scripts:ro
+      - ./tests/carga/resultados:/resultados
+    command:
+      - run
+      - --summary-export=/resultados/resumo.json
+      - /scripts/documentos-fiscais.js
+    depends_on:
+      api:
+        condition: service_healthy
 
 volumes:
   dados_postgres:

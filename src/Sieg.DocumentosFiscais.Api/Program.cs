@@ -21,12 +21,23 @@ construtor.Services.AddProblemDetails();
 construtor.Services.AddExceptionHandler<TratadorGlobalExcecoes>();
 construtor.Services.AddEndpointsApiExplorer();
 construtor.Services.AddSwaggerGen();
+
+var limiteIngestaoPorMinuto = construtor.Configuration.GetValue(
+    "LimitesRequisicoes:IngestaoPorMinuto",
+    30);
+
+if (limiteIngestaoPorMinuto <= 0)
+{
+    throw new InvalidOperationException(
+        "O limite de requisições de ingestão por minuto deve ser maior que zero.");
+}
+
 construtor.Services.AddRateLimiter(opcoes =>
 {
     opcoes.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     opcoes.AddFixedWindowLimiter("ingestao", limite =>
     {
-        limite.PermitLimit = 30;
+        limite.PermitLimit = limiteIngestaoPorMinuto;
         limite.Window = TimeSpan.FromMinutes(1);
         limite.QueueLimit = 0;
         limite.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
