@@ -14,7 +14,7 @@ resumo do documento de forma idempotente.
 - publicação confiável de eventos com Outbox;
 - consumidor RabbitMQ com retentativas, fila de falhas e idempotência;
 - Swagger, tratamento global de erros e limitação de requisições de ingestão;
-- testes unitários e testes de integração com PostgreSQL e RabbitMQ reais em contêineres.
+- testes unitários, de arquitetura e de integração com PostgreSQL e RabbitMQ reais em contêineres.
 
 ## Arquitetura
 
@@ -41,7 +41,8 @@ src/
 └── Sieg.DocumentosFiscais.Processador      Consumidor executado em segundo plano
 tests/
 ├── Sieg.DocumentosFiscais.Testes.Unitarios
-└── Sieg.DocumentosFiscais.Testes.Integracao
+├── Sieg.DocumentosFiscais.Testes.Integracao
+└── Sieg.DocumentosFiscais.Testes.Arquitetura
 ```
 
 O domínio não depende de infraestrutura. A aplicação coordena os casos de uso por interfaces,
@@ -369,6 +370,17 @@ dotnet test tests/Sieg.DocumentosFiscais.Testes.Unitarios `
   --configuration Release --no-build
 ```
 
+Testes de arquitetura, também sem dependência de Docker:
+
+```powershell
+dotnet test tests/Sieg.DocumentosFiscais.Testes.Arquitetura `
+  --configuration Release --no-build
+```
+
+Eles impedem dependências invertidas entre as camadas, acesso direto da API ao contexto do EF
+Core, contratos da aplicação sem implementação na infraestrutura e violações das convenções de
+nomenclatura adotadas no projeto.
+
 Toda a suíte:
 
 ```powershell
@@ -389,6 +401,6 @@ idempotência, retentativas e fila de falhas.
 - usar um rate limiter distribuído quando houver várias instâncias da API;
 - executar migrations por um job exclusivo no processo de implantação;
 - criar endpoint ou ferramenta administrativa para inspeção e reprocessamento da fila de falhas;
-- adicionar testes de carga e testes automatizados de arquitetura, itens opcionais do desafio;
+- adicionar testes de carga e testes de desempenho para ingestão e consultas;
 - ampliar o consumidor com novos handlers e versionamento explícito dos contratos de eventos;
 - definir políticas de backup, recuperação e alta disponibilidade para PostgreSQL e RabbitMQ.

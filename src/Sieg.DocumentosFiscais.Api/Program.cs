@@ -1,13 +1,11 @@
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.EntityFrameworkCore;
 using Sieg.DocumentosFiscais.Api.TratamentoErros;
 using Sieg.DocumentosFiscais.Aplicacao.DocumentosFiscais;
-using Sieg.DocumentosFiscais.Infraestrutura.Persistencia.Contexto;
+using Sieg.DocumentosFiscais.Infraestrutura.Mensageria;
 using Sieg.DocumentosFiscais.Infraestrutura.Persistencia;
 using Sieg.DocumentosFiscais.Infraestrutura.ProcessamentoXml;
-using Sieg.DocumentosFiscais.Infraestrutura.Mensageria;
 
 var construtor = WebApplication.CreateBuilder(args);
 
@@ -45,9 +43,7 @@ var aplicacao = construtor.Build();
 
 if (aplicacao.Configuration.GetValue<bool>("BancoDados:AplicarMigracoesAoIniciar"))
 {
-    await using var escopo = aplicacao.Services.CreateAsyncScope();
-    var contexto = escopo.ServiceProvider.GetRequiredService<DocumentosFiscaisDbContext>();
-    await contexto.Database.MigrateAsync();
+    await aplicacao.Services.AplicarMigracoesAsync();
 }
 
 if (aplicacao.Environment.IsDevelopment())

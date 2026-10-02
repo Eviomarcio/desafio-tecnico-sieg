@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.RateLimiting;
 using Sieg.DocumentosFiscais.Api.Modelos;
 using Sieg.DocumentosFiscais.Aplicacao.DocumentosFiscais;
 using Sieg.DocumentosFiscais.Aplicacao.Excecoes;
-using Sieg.DocumentosFiscais.Infraestrutura.ProcessamentoXml;
 
 namespace Sieg.DocumentosFiscais.Api.Controllers;
 
@@ -12,8 +11,9 @@ namespace Sieg.DocumentosFiscais.Api.Controllers;
 public sealed class DocumentosFiscaisController(IServicoDocumentosFiscais servico) : ControllerBase
 {
     private const string NomeRotaObterPorId = "ObterDocumentoFiscalPorId";
+    private const long TamanhoMaximoXmlEmBytes = 5 * 1024 * 1024;
     private const long TamanhoMaximoRequisicao =
-        ProcessadorXmlFiscal.TamanhoMaximoEmBytes + (64 * 1024);
+        TamanhoMaximoXmlEmBytes + (64 * 1024);
 
     [HttpPost]
     [Consumes("multipart/form-data")]
@@ -110,7 +110,7 @@ public sealed class DocumentosFiscaisController(IServicoDocumentosFiscais servic
             throw new XmlFiscalInvalidoException("O arquivo XML está vazio.");
         }
 
-        if (arquivo.Length > ProcessadorXmlFiscal.TamanhoMaximoEmBytes)
+        if (arquivo.Length > TamanhoMaximoXmlEmBytes)
         {
             throw new XmlFiscalInvalidoException("O arquivo XML excede o limite de 5 MB.");
         }

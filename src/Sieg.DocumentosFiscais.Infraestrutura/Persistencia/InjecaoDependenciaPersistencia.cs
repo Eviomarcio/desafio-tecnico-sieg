@@ -28,4 +28,13 @@ public static class InjecaoDependenciaPersistencia
 
         return servicos;
     }
+
+    public static async Task AplicarMigracoesAsync(
+        this IServiceProvider provedorServicos,
+        CancellationToken cancellationToken = default)
+    {
+        await using var escopo = provedorServicos.CreateAsyncScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<DocumentosFiscaisDbContext>();
+        await contexto.Database.MigrateAsync(cancellationToken);
+    }
 }

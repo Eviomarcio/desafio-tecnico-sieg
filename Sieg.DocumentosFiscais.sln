@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sieg.DocumentosFiscais.Test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sieg.DocumentosFiscais.Testes.Integracao", "tests\Sieg.DocumentosFiscais.Testes.Integracao\Sieg.DocumentosFiscais.Testes.Integracao.csproj", "{C395DDC4-61DD-48BE-919F-608B537785A4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sieg.DocumentosFiscais.Testes.Arquitetura", "tests\Sieg.DocumentosFiscais.Testes.Arquitetura\Sieg.DocumentosFiscais.Testes.Arquitetura.csproj", "{65B95D9A-9559-4D2D-9D37-A6F9E58BB616}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -58,6 +60,10 @@ Global
 		{C395DDC4-61DD-48BE-919F-608B537785A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C395DDC4-61DD-48BE-919F-608B537785A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C395DDC4-61DD-48BE-919F-608B537785A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{65B95D9A-9559-4D2D-9D37-A6F9E58BB616}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{65B95D9A-9559-4D2D-9D37-A6F9E58BB616}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{65B95D9A-9559-4D2D-9D37-A6F9E58BB616}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{65B95D9A-9559-4D2D-9D37-A6F9E58BB616}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{ECB582BA-50AA-4095-AA74-66E1C9477039} = {51E1E009-722A-4406-92F7-11B69BBB5EFB}
@@ -67,5 +73,6 @@ Global
 		{9B6F4A96-6D03-4574-ADD1-7B96D0D027E1} = {51E1E009-722A-4406-92F7-11B69BBB5EFB}
 		{A81FDE91-9A3A-4E54-A8CC-C0418E82098F} = {FBD61764-B50F-4C86-AB5B-9242DCD2DE1C}
 		{C395DDC4-61DD-48BE-919F-608B537785A4} = {FBD61764-B50F-4C86-AB5B-9242DCD2DE1C}
+		{65B95D9A-9559-4D2D-9D37-A6F9E58BB616} = {FBD61764-B50F-4C86-AB5B-9242DCD2DE1C}
 	EndGlobalSection
 EndGlobal
