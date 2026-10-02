@@ -1,8 +1,10 @@
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Sieg.DocumentosFiscais.Api.TratamentoErros;
 using Sieg.DocumentosFiscais.Aplicacao.DocumentosFiscais;
+using Sieg.DocumentosFiscais.Infraestrutura.Persistencia.Contexto;
 using Sieg.DocumentosFiscais.Infraestrutura.Persistencia;
 using Sieg.DocumentosFiscais.Infraestrutura.ProcessamentoXml;
 using Sieg.DocumentosFiscais.Infraestrutura.Mensageria;
@@ -41,6 +43,13 @@ construtor.Services.AddScoped<IServicoDocumentosFiscais, ServicoDocumentosFiscai
 
 var aplicacao = construtor.Build();
 
+if (aplicacao.Configuration.GetValue<bool>("BancoDados:AplicarMigracoesAoIniciar"))
+{
+    await using var escopo = aplicacao.Services.CreateAsyncScope();
+    var contexto = escopo.ServiceProvider.GetRequiredService<DocumentosFiscaisDbContext>();
+    await contexto.Database.MigrateAsync();
+}
+
 if (aplicacao.Environment.IsDevelopment())
 {
     aplicacao.UseSwagger();
@@ -59,7 +68,12 @@ aplicacao.UseStatusCodePages(async contexto =>
             })
         .ExecuteAsync(contexto.HttpContext);
 });
-aplicacao.UseHttpsRedirection();
+
+if (aplicacao.Configuration.GetValue("Seguranca:UsarRedirecionamentoHttps", true))
+{
+    aplicacao.UseHttpsRedirection();
+}
+
 aplicacao.UseRateLimiter();
 
 aplicacao.MapControllers();

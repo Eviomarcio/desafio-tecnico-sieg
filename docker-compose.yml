@@ -1,3 +1,17 @@
+x-configuracao-aplicacao: &configuracao-aplicacao
+  ConnectionStrings__PostgreSql: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-documentos_fiscais};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}"
+  RabbitMq__Servidor: rabbitmq
+  RabbitMq__Porta: 5672
+  RabbitMq__Usuario: ${RABBITMQ_DEFAULT_USER:-sieg}
+  RabbitMq__Senha: ${RABBITMQ_DEFAULT_PASS:-sieg}
+  RabbitMq__NomeExchange: documentos-fiscais-compose
+  RabbitMq__NomeFila: documentos-fiscais-processados-compose
+  RabbitMq__ChaveRoteamento: documento-fiscal.processado.compose
+  RabbitMq__NomeExchangeRetentativa: documentos-fiscais-retentativas-compose
+  RabbitMq__NomeExchangeFalhas: documentos-fiscais-falhas-compose
+  RabbitMq__NomeFilaFalhas: documentos-fiscais-processados-falhas-compose
+  RabbitMq__ChaveRoteamentoFalhas: documento-fiscal.processado.falha.compose
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -32,6 +46,47 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  api:
+    image: sieg/documentos-fiscais-api:local
+    container_name: sieg-documentos-fiscais-api
+    build:
+      context: .
+      dockerfile: src/Sieg.DocumentosFiscais.Api/Dockerfile
+    environment:
+      <<: *configuracao-aplicacao
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_HTTP_PORTS: 8080
+      BancoDados__AplicarMigracoesAoIniciar: true
+      Seguranca__UsarRedirecionamentoHttps: false
+    ports:
+      - "${API_PORT:-5119}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/saude"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    restart: unless-stopped
+
+  processador:
+    image: sieg/documentos-fiscais-processador:local
+    container_name: sieg-documentos-fiscais-processador
+    build:
+      context: .
+      dockerfile: src/Sieg.DocumentosFiscais.Processador/Dockerfile
+    environment:
+      <<: *configuracao-aplicacao
+      DOTNET_ENVIRONMENT: ${DOTNET_ENVIRONMENT:-Development}
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   dados_postgres:
