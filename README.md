@@ -49,49 +49,6 @@ O domínio não depende de infraestrutura. A aplicação coordena os casos de us
 e a infraestrutura implementa persistência, análise dos XMLs e mensageria. A API publica o
 Outbox, enquanto o processador é responsável pelo consumo e pela geração dos resumos.
 
-### Por que utilizar Clean Architecture
-
-A Clean Architecture foi adotada para manter as regras de documentos fiscais independentes dos
-detalhes técnicos usados para executá-las. Entidades, enumerações e eventos do domínio não
-conhecem ASP.NET Core, Entity Framework Core, PostgreSQL ou RabbitMQ. A camada de aplicação
-define os casos de uso e os contratos necessários, enquanto a infraestrutura fornece suas
-implementações. Dessa forma, as dependências apontam para as regras centrais da solução, e não
-para ferramentas externas.
-
-Essa separação traz benefícios importantes para este projeto:
-
-- permite testar regras e casos de uso sem iniciar banco de dados, servidor HTTP ou mensageria;
-- impede que controllers concentrem regras de negócio ou acessem diretamente o contexto do EF
-  Core;
-- permite substituir PostgreSQL, RabbitMQ ou o processador de XML com menor impacto nas regras
-  da aplicação;
-- possibilita que a API e o processador em segundo plano reutilizem os mesmos contratos e casos
-  de uso;
-- torna explícitos os limites entre domínio, aplicação, infraestrutura e mecanismos de entrada;
-- reduz o acoplamento e facilita a evolução independente de persistência, XML e mensageria.
-
-O custo dessa abordagem é a existência de mais projetos, interfaces e configurações de injeção
-de dependência. Neste desafio, esse custo é compensado pela presença de persistência
-transacional, processamento de diferentes XMLs, publicação Outbox, consumo assíncrono e testes
-em vários níveis. Os testes de arquitetura garantem automaticamente que esses limites não sejam
-violados durante a evolução da solução.
-
-#### Trade-offs da escolha
-
-| Decisão | Ganho | Custo ou limitação |
-|---|---|---|
-| Separar a solução em camadas | Responsabilidades e dependências ficam explícitas | Mais projetos, pastas e arquivos para manter |
-| Definir contratos na aplicação | Casos de uso podem ser testados e a infraestrutura pode ser substituída | Exige interfaces, implementações e registros na injeção de dependência |
-| Manter o domínio independente | Regras de negócio não ficam acopladas a frameworks | Requer mapeamentos entre entidades, DTOs, eventos e modelos de persistência |
-| Isolar EF Core e RabbitMQ na infraestrutura | API e aplicação não conhecem detalhes externos | A navegação pelo código envolve atravessar mais camadas |
-| Aplicar regras arquiteturais automaticamente | Regressões de dependência são detectadas no build | A suíte de arquitetura também precisa evoluir quando surgem novas convenções |
-
-Em uma API CRUD pequena e sem perspectiva de evolução, essa estrutura poderia representar
-complexidade desnecessária. Neste caso, porém, a combinação de persistência transacional,
-idempotência, Outbox, processamento assíncrono, retentativas e múltiplos formatos fiscais torna
-vantajosa a separação. O trade-off assumido é aceitar mais estrutura e código de integração em
-troca de testabilidade, menor acoplamento e maior segurança para evoluir a solução.
-
 ## Tecnologias utilizadas
 
 - .NET 8 e C#;
@@ -106,6 +63,75 @@ troca de testabilidade, menor acoplamento e maior segurança para evoluir a solu
 
 O SDK definido em `global.json` é o .NET SDK `8.0.407`. O projeto trata avisos de compilação
 como erros e utiliza o nível recomendado mais recente dos analisadores.
+
+## Decisões técnicas
+
+### Clean Architecture
+
+A Clean Architecture foi adotada para manter as regras de documentos fiscais independentes dos
+detalhes técnicos usados para executá-las. Entidades, enumerações e eventos do domínio não
+conhecem ASP.NET Core, Entity Framework Core, PostgreSQL ou RabbitMQ. A aplicação define os
+casos de uso e contratos, enquanto a infraestrutura fornece suas implementações. Assim, as
+dependências apontam para as regras centrais, e não para ferramentas externas.
+
+Essa separação permite testar casos de uso sem recursos externos, impede que controllers
+concentrem regras de negócio, facilita a substituição da infraestrutura e permite que API e
+processador reutilizem os mesmos contratos. Os testes de arquitetura garantem automaticamente
+que os limites entre as camadas continuem sendo respeitados.
+
+#### Trade-offs da Clean Architecture
+
+| Decisão | Ganho | Custo ou limitação |
+|---|---|---|
+| Separar a solução em camadas | Responsabilidades e dependências ficam explícitas | Mais projetos, pastas e arquivos para manter |
+| Definir contratos na aplicação | Casos de uso podem ser testados e a infraestrutura pode ser substituída | Exige interfaces, implementações e registros na injeção de dependência |
+| Manter o domínio independente | Regras de negócio não ficam acopladas a frameworks | Requer mapeamentos entre entidades, DTOs, eventos e persistência |
+| Isolar EF Core e RabbitMQ | A aplicação não conhece detalhes externos | A navegação pelo código atravessa mais camadas |
+| Testar regras arquiteturais | Regressões de dependência são detectadas no build | A suíte também precisa evoluir com novas convenções |
+
+Em uma API CRUD pequena, essa estrutura poderia ser complexidade desnecessária. Neste caso, o
+trade-off assumido é aceitar mais estrutura e código de integração em troca de testabilidade,
+menor acoplamento e maior segurança para evoluir persistência, XML e mensageria.
+
+### PostgreSQL
+
+O PostgreSQL foi escolhido porque os dados extraídos possuem estrutura estável e relacionamentos
+claros, enquanto os requisitos pedem filtros, paginação, unicidade e operações transacionais. A
+escolha permite:
+
+- gravar o documento e seu evento Outbox na mesma transação;
+- garantir idempotência por índices únicos de hash e de tipo/chave fiscal;
+- indexar CNPJ, UF e data de emissão para as consultas;
+- controlar concorrência otimista por meio da coluna de sistema `xmin`;
+- manter o XML integral em `text` e o evento Outbox em `jsonb`;
+- usar migrations versionadas pelo Entity Framework Core.
+
+O trade-off é adotar esquema e migrations para documentos originalmente representados como XML.
+MongoDB seria uma alternativa para estruturas muito heterogêneas e consultas centradas no
+documento completo, mas ofereceria menos benefício aqui: os campos consultáveis são conhecidos
+e a consistência transacional entre documento e Outbox é central para a solução.
+
+### k6 em vez de NBomber
+
+O k6 foi escolhido porque os testes de carga exercitam a aplicação como cliente externo via
+HTTP. Ele possui imagem Docker pronta, scripts pequenos em JavaScript, usuários virtuais,
+métricas, percentis e *thresholds*, permitindo executar os cenários sem instalar outra
+ferramenta e reprovar automaticamente limites de latência ou erro.
+
+O NBomber também seria válido. Por utilizar .NET e C#, permitiria reutilizar tipos e bibliotecas
+da solução e ofereceria uma experiência natural de depuração. Seria especialmente interessante
+para cenários que chamassem componentes .NET diretamente ou exigissem protocolos específicos.
+
+| Critério | k6 | NBomber |
+|---|---|---|
+| Objetivo deste teste | Teste externo de caixa-preta via HTTP | Maior integração com componentes .NET |
+| Execução local | Imagem Docker independente da solução | Normalmente aplicação ou projeto .NET |
+| Linguagem dos cenários | JavaScript | C# |
+| Reutilização de código | Menor, preservando a independência do teste | Maior, compartilhando tipos e utilitários C# |
+| Acoplamento tecnológico | Independente da plataforma da API | Vinculado ao ecossistema .NET |
+
+O trade-off assumido foi abrir mão da reutilização de código C# em troca de uma suíte portátil,
+simples de executar pelo Docker Compose e independente da implementação interna da API.
 
 ## Início rápido com Docker
 
@@ -317,23 +343,6 @@ curl.exe -X PUT "http://localhost:5119/api/v1/documentos-fiscais/$id" `
 $id = "SUBSTITUA-PELO-ID-RETORNADO"
 curl.exe -i -X DELETE "http://localhost:5119/api/v1/documentos-fiscais/$id"
 ```
-
-## Decisão pelo PostgreSQL
-
-Foi escolhido PostgreSQL porque os dados extraídos dos documentos possuem estrutura estável e
-relacionamentos claros, enquanto os requisitos pedem filtros, paginação, unicidade e operações
-transacionais. A escolha permite:
-
-- gravar o documento e seu evento Outbox na mesma transação;
-- garantir idempotência por índices únicos de hash e de tipo/chave fiscal;
-- indexar CNPJ, UF e data de emissão para as consultas;
-- controlar concorrência otimista por meio da coluna de sistema `xmin`;
-- manter o XML integral em `text` e o evento Outbox em `jsonb`;
-- usar migrations versionadas pelo Entity Framework Core.
-
-MongoDB seria viável para XMLs muito heterogêneos e consultas centradas no documento completo,
-mas traria menos benefício neste caso, pois os campos consultáveis são conhecidos e a
-consistência transacional entre documento e Outbox é central para a solução.
 
 ## Outbox e idempotência
 
