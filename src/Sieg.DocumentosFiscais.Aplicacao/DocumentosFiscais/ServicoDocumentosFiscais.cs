@@ -191,7 +191,7 @@ public sealed class ServicoDocumentosFiscais(
     private static DocumentoFiscalResumoDto MapearResumo(DocumentoFiscal documento) => new(
         documento.Id,
         documento.Tipo,
-        documento.ChaveFiscal,
+        MascararChaveFiscal(documento.ChaveFiscal),
         MascararCnpj(documento.CnpjEmitente),
         MascararCnpj(documento.CnpjDestinatario),
         documento.UnidadeFederativa,
@@ -202,13 +202,12 @@ public sealed class ServicoDocumentosFiscais(
     private static DocumentoFiscalDetalhesDto MapearDetalhes(DocumentoFiscal documento) => new(
         documento.Id,
         documento.Tipo,
-        documento.ChaveFiscal,
-        documento.CnpjEmitente,
-        documento.CnpjDestinatario,
+        MascararChaveFiscal(documento.ChaveFiscal),
+        MascararCnpj(documento.CnpjEmitente),
+        MascararCnpj(documento.CnpjDestinatario),
         documento.UnidadeFederativa,
         documento.DataEmissao,
         documento.HashConteudo,
-        documento.ConteudoXml,
         documento.CriadoEm,
         documento.AtualizadoEm);
 
@@ -216,4 +215,21 @@ public sealed class ServicoDocumentosFiscais(
         cnpj is { Length: 14 }
             ? $"{cnpj[..2]}.***.***/{cnpj.Substring(8, 4)}-**"
             : cnpj;
+
+    private static string? MascararChaveFiscal(string? chaveFiscal)
+    {
+        if (chaveFiscal is not { Length: 44 })
+        {
+            return chaveFiscal;
+        }
+
+        const int inicioCnpj = 6;
+        const int tamanhoCnpj = 14;
+        var cnpjMascarado = $"{chaveFiscal[inicioCnpj..(inicioCnpj + 2)]}**********" +
+                            chaveFiscal[(inicioCnpj + 12)..(inicioCnpj + 14)];
+
+        return chaveFiscal[..inicioCnpj] +
+               cnpjMascarado +
+               chaveFiscal[(inicioCnpj + tamanhoCnpj)..];
+    }
 }

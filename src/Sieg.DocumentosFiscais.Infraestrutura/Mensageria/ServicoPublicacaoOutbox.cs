@@ -18,17 +18,18 @@ public sealed class ServicoPublicacaoOutbox(
             new EventId(1, nameof(RegistrarEventoPublicado)),
             "Evento Outbox {EventoId} publicado no RabbitMQ");
 
-    private static readonly Action<ILogger, Guid, DateTimeOffset, Exception?> RegistrarFalhaPublicacao =
-        LoggerMessage.Define<Guid, DateTimeOffset>(
+    private static readonly Action<ILogger, Guid, DateTimeOffset, string, Exception?>
+        RegistrarFalhaPublicacao =
+        LoggerMessage.Define<Guid, DateTimeOffset, string>(
             LogLevel.Warning,
             new EventId(2, nameof(RegistrarFalhaPublicacao)),
-            "Falha ao publicar o evento Outbox {EventoId}; nova tentativa em {ProximaTentativa}");
+            "Falha ao publicar o evento Outbox {EventoId}; tipo {TipoErro}; nova tentativa em {ProximaTentativa}");
 
-    private static readonly Action<ILogger, Exception?> RegistrarFalhaCiclo =
-        LoggerMessage.Define(
+    private static readonly Action<ILogger, string, Exception?> RegistrarFalhaCiclo =
+        LoggerMessage.Define<string>(
             LogLevel.Error,
             new EventId(3, nameof(RegistrarFalhaCiclo)),
-            "Falha ao executar o ciclo de publicação do Outbox");
+            "Falha do tipo {TipoErro} ao executar o ciclo de publicação do Outbox");
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -46,7 +47,7 @@ public sealed class ServicoPublicacaoOutbox(
             }
             catch (Exception excecao)
             {
-                RegistrarFalhaCiclo(logger, excecao);
+                RegistrarFalhaCiclo(logger, ObterTipoErro(excecao), null);
             }
 
             var intervalo = encontrouEventos
@@ -98,9 +99,10 @@ public sealed class ServicoPublicacaoOutbox(
         catch (Exception excecao)
         {
             var proximaTentativa = CalcularProximaTentativa(evento);
-            evento.RegistrarFalha(excecao.GetBaseException().Message, proximaTentativa);
+            var tipoErro = ObterTipoErro(excecao);
+            evento.RegistrarFalha(tipoErro, proximaTentativa);
             await unidadeTrabalho.SalvarAlteracoesAsync(cancellationToken);
-            RegistrarFalhaPublicacao(logger, evento.Id, proximaTentativa, excecao);
+            RegistrarFalhaPublicacao(logger, evento.Id, proximaTentativa, tipoErro, null);
             return;
         }
 
@@ -115,4 +117,7 @@ public sealed class ServicoPublicacaoOutbox(
         var segundos = 5 * Math.Pow(2, expoente);
         return provedorTempo.GetUtcNow().AddSeconds(segundos);
     }
+
+    private static string ObterTipoErro(Exception excecao) =>
+        excecao.GetBaseException().GetType().Name;
 }

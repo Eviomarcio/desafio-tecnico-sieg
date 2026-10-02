@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Sieg.DocumentosFiscais.Aplicacao.Abstracoes;
 using Sieg.DocumentosFiscais.Aplicacao.DocumentosFiscais;
 using Sieg.DocumentosFiscais.Aplicacao.Excecoes;
@@ -151,6 +152,55 @@ public sealed class ServicoDocumentosFiscaisTestes
                 _servico.ObterPorIdAsync(id, CancellationToken.None)));
 
         Assert.That(excecao!.Message, Does.Contain(id.ToString()));
+    }
+
+    [Test]
+    public async Task ObterPorId_QuandoExistir_DeveMascararDadosSensiveisEOmitirXml()
+    {
+        var documento = FabricaObjetosTeste.CriarDocumento();
+        _documentoRepositorio
+            .ObterPorIdAsync(documento.Id, Arg.Any<CancellationToken>())
+            .Returns(documento);
+
+        var resultado = await _servico.ObterPorIdAsync(
+            documento.Id,
+            CancellationToken.None);
+        var respostaJson = JsonSerializer.Serialize(resultado);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(resultado.CnpjEmitente, Is.EqualTo("12.***.***/0001-**"));
+            Assert.That(resultado.CnpjDestinatario, Is.EqualTo("98.***.***/0001-**"));
+            Assert.That(resultado.ChaveFiscal, Does.Not.Contain("12345678000195"));
+            Assert.That(respostaJson, Does.Not.Contain(documento.ConteudoXml));
+            Assert.That(respostaJson, Does.Not.Contain("12345678000195"));
+            Assert.That(respostaJson, Does.Not.Contain("98765432000110"));
+            Assert.That(respostaJson, Does.Not.Contain("ConteudoXml"));
+        }
+    }
+
+    [Test]
+    public async Task ObterPorId_ComCnpjAlfanumerico_DeveAplicarMascara()
+    {
+        var documento = new DocumentoFiscal(
+            TipoDocumentoFiscal.NFSe,
+            "NFSE-ALFANUMERICA",
+            "AB.CDE.FGH/IJKL-01",
+            null,
+            "SC",
+            FabricaObjetosTeste.Instante,
+            FabricaObjetosTeste.HashA,
+            "<CompNfse />",
+            FabricaObjetosTeste.Instante);
+        _documentoRepositorio
+            .ObterPorIdAsync(documento.Id, Arg.Any<CancellationToken>())
+            .Returns(documento);
+
+        var resultado = await _servico.ObterPorIdAsync(
+            documento.Id,
+            CancellationToken.None);
+
+        Assert.That(resultado.CnpjEmitente, Is.EqualTo("AB.***.***/IJKL-**"));
     }
 
     [Test]

@@ -22,7 +22,6 @@ public sealed record DocumentoFiscalDetalhesDto(
     string? UnidadeFederativa,
     DateTimeOffset? DataEmissao,
     string HashConteudo,
-    string ConteudoXml,
     DateTimeOffset CriadoEm,
     DateTimeOffset AtualizadoEm);
 

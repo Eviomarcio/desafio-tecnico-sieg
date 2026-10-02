@@ -210,6 +210,53 @@ public sealed class DocumentosFiscaisApiTestes : IAsyncDisposable
     }
 
     [Test]
+    public async Task ProcessarEConsultar_NaoDevemExporXmlOuCnpjsSemMascara()
+    {
+        using var respostaCriacao = await EnviarXmlAsync(
+            HttpMethod.Post,
+            RotaDocumentos,
+            XmlNFe);
+        var corpoCriacao = await respostaCriacao.Content.ReadAsStringAsync();
+        var documento = await respostaCriacao.Content
+            .ReadFromJsonAsync<DocumentoFiscalDetalhesDto>(OpcoesJson);
+
+        using var respostaConsulta = await _cliente.GetAsync(
+            $"{RotaDocumentos}/{documento!.Id}");
+        var corpoConsulta = await respostaConsulta.Content.ReadAsStringAsync();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(respostaCriacao.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+            Assert.That(respostaConsulta.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            AssertRespostaProtegida(corpoCriacao);
+            AssertRespostaProtegida(corpoConsulta);
+        }
+
+        var conteudoPersistido = await _fabrica.ConsultarBancoAsync(contexto =>
+            contexto.DocumentosFiscais
+                .Select(item => item.ConteudoXml)
+                .SingleAsync());
+        Assert.That(conteudoPersistido, Does.Contain("<nfeProc"));
+    }
+
+    [Test]
+    public async Task Processar_XmlNaoSuportado_NaoDeveRepetirConteudoNaResposta()
+    {
+        const string dadoSensivel = "DADO_SIGILOSO_98765432000110";
+        var xml = $"<{dadoSensivel}><valor>segredo</valor></{dadoSensivel}>";
+
+        using var resposta = await EnviarXmlAsync(HttpMethod.Post, RotaDocumentos, xml);
+        var corpo = await resposta.Content.ReadAsStringAsync();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(resposta.StatusCode, Is.EqualTo(HttpStatusCode.UnprocessableEntity));
+            Assert.That(corpo, Does.Not.Contain(dadoSensivel));
+            Assert.That(corpo, Does.Not.Contain("segredo"));
+        }
+    }
+
+    [Test]
     public async Task Listar_ComPaginacaoInvalida_DeveRetornarErroDeValidacao()
     {
         using var resposta = await _cliente.GetAsync(
@@ -269,6 +316,16 @@ public sealed class DocumentosFiscaisApiTestes : IAsyncDisposable
         var opcoes = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         opcoes.Converters.Add(new JsonStringEnumConverter());
         return opcoes;
+    }
+
+    private static void AssertRespostaProtegida(string resposta)
+    {
+        Assert.That(resposta, Does.Not.Contain("conteudoXml").IgnoreCase);
+        Assert.That(resposta, Does.Not.Contain("<nfeProc").IgnoreCase);
+        Assert.That(resposta, Does.Not.Contain("12345678000195"));
+        Assert.That(resposta, Does.Not.Contain("98765432000110"));
+        Assert.That(resposta, Does.Contain("12.***.***/0001-**"));
+        Assert.That(resposta, Does.Contain("98.***.***/0001-**"));
     }
 
     private const string XmlNFe = """

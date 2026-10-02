@@ -26,7 +26,7 @@ public sealed class ProcessadorXmlFiscal(IEnumerable<IAnalisadorXmlFiscal> anali
             var documento = CarregarDocumento(conteudo);
             var analisador = _analisadores.SingleOrDefault(item => item.PodeAnalisar(documento))
                 ?? throw new XmlFiscalInvalidoException(
-                    $"O elemento raiz '{documento.Root?.Name.LocalName}' não representa uma NFe, CTe ou NFSe suportada.");
+                    "O conteúdo não representa uma NFe, CTe ou NFSe suportada.");
             var xmlNormalizado = NormalizarDocumento(documento);
             var hashConteudo = CalcularHash(xmlNormalizado);
 

@@ -37,23 +37,23 @@ public sealed class ConsumidorDocumentosFiscais(
             new EventId(3, nameof(RegistrarEventoDuplicado)),
             "Evento {EventoId} já havia sido processado e foi confirmado sem repetição");
 
-    private static readonly Action<ILogger, string, int, Exception?> RegistrarRetentativa =
-        LoggerMessage.Define<string, int>(
+    private static readonly Action<ILogger, string, int, string, Exception?> RegistrarRetentativa =
+        LoggerMessage.Define<string, int, string>(
             LogLevel.Warning,
             new EventId(4, nameof(RegistrarRetentativa)),
-            "Mensagem {MensagemId} encaminhada para a retentativa {Tentativa}");
+            "Mensagem {MensagemId} encaminhada para a retentativa {Tentativa}; tipo {TipoErro}");
 
-    private static readonly Action<ILogger, string, Exception?> RegistrarFilaFalhas =
-        LoggerMessage.Define<string>(
+    private static readonly Action<ILogger, string, string, Exception?> RegistrarFilaFalhas =
+        LoggerMessage.Define<string, string>(
             LogLevel.Error,
             new EventId(5, nameof(RegistrarFilaFalhas)),
-            "Mensagem {MensagemId} encaminhada para a fila de falhas");
+            "Mensagem {MensagemId} encaminhada para a fila de falhas; tipo {TipoErro}");
 
-    private static readonly Action<ILogger, Exception?> RegistrarFalhaConexao =
-        LoggerMessage.Define(
+    private static readonly Action<ILogger, string, Exception?> RegistrarFalhaConexao =
+        LoggerMessage.Define<string>(
             LogLevel.Error,
             new EventId(6, nameof(RegistrarFalhaConexao)),
-            "Falha na conexão do consumidor com o RabbitMQ; uma nova tentativa será realizada");
+            "Falha do tipo {TipoErro} na conexão do consumidor com o RabbitMQ; uma nova tentativa será realizada");
 
     private IConnection? _conexao;
     private IChannel? _canal;
@@ -72,7 +72,7 @@ public sealed class ConsumidorDocumentosFiscais(
             }
             catch (Exception excecao)
             {
-                RegistrarFalhaConexao(logger, excecao);
+                RegistrarFalhaConexao(logger, ObterTipoErro(excecao), null);
             }
             finally
             {
@@ -177,6 +177,7 @@ public sealed class ConsumidorDocumentosFiscais(
         try
         {
             var tentativa = ObterTentativa(argumentos.BasicProperties.Headers) + 1;
+            var tipoErro = ObterTipoErro(excecao);
 
             if (tentativa <= opcoes.IntervalosRetentativaSegundos.Length)
             {
@@ -193,7 +194,8 @@ public sealed class ConsumidorDocumentosFiscais(
                     logger,
                     ObterIdentificadorMensagem(argumentos.BasicProperties),
                     tentativa,
-                    excecao);
+                    tipoErro,
+                    null);
             }
             else
             {
@@ -209,7 +211,8 @@ public sealed class ConsumidorDocumentosFiscais(
                 RegistrarFilaFalhas(
                     logger,
                     ObterIdentificadorMensagem(argumentos.BasicProperties),
-                    excecao);
+                    tipoErro,
+                    null);
             }
 
             await canal.BasicAckAsync(
@@ -223,7 +226,7 @@ public sealed class ConsumidorDocumentosFiscais(
         }
         catch (Exception falhaEncaminhamento)
         {
-            RegistrarFalhaConexao(logger, falhaEncaminhamento);
+            RegistrarFalhaConexao(logger, ObterTipoErro(falhaEncaminhamento), null);
             await canal.BasicNackAsync(
                 argumentos.DeliveryTag,
                 multiple: false,
@@ -265,7 +268,7 @@ public sealed class ConsumidorDocumentosFiscais(
         Exception excecao,
         CancellationToken cancellationToken)
     {
-        var mensagemErro = excecao.GetBaseException().Message;
+        var tipoErro = ObterTipoErro(excecao);
         var propriedades = new BasicProperties
         {
             ContentType = propriedadesOriginais.ContentType ?? "application/json",
@@ -277,8 +280,7 @@ public sealed class ConsumidorDocumentosFiscais(
             Headers = new Dictionary<string, object?>
             {
                 [CabecalhoTentativa] = tentativa,
-                [CabecalhoUltimoErro] = Encoding.UTF8.GetBytes(
-                    mensagemErro.Length <= 500 ? mensagemErro : mensagemErro[..500])
+                [CabecalhoUltimoErro] = Encoding.UTF8.GetBytes(tipoErro)
             }
         };
 
@@ -393,6 +395,9 @@ public sealed class ConsumidorDocumentosFiscais(
         string.IsNullOrWhiteSpace(propriedades.MessageId)
             ? "sem-identificador"
             : propriedades.MessageId;
+
+    private static string ObterTipoErro(Exception excecao) =>
+        excecao.GetBaseException().GetType().Name;
 
     private async Task DescartarConexaoAsync()
     {
